@@ -11,7 +11,7 @@ from keras.utils.np_utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
 
 from anago.utils import Vocabulary
-from anago.BertHelper import convert_examples_to_features,create_tokenizer_from_hub_module,convert_text_to_examples
+
 
 def normalize_number(text):
     return re.sub(r'[0-9０１２３４５６７８９]', r'0', text)
@@ -48,7 +48,7 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
             self._word_vocab.add_documents([initial_vocab])
             self._char_vocab.add_documents(initial_vocab)
 
-    def fit(self, X, y,max_len,bretFlag):
+    def fit(self, X, y):
         """Learn vocabulary from training set.
 
         Args:
@@ -59,8 +59,6 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
         """
         self._word_vocab.add_documents(X)
         self._label_vocab.add_documents(y)
-        self._max_len=max_len
-        self._bretFlag=bretFlag
         if self._use_char:
             for doc in X:
                 self._char_vocab.add_documents(doc)
@@ -85,28 +83,10 @@ class IndexTransformer(BaseEstimator, TransformerMixin):
             features: document id matrix.
             y: label id matrix.
         """
-
         word_ids = [self._word_vocab.doc2id(doc) for doc in X]
-        word_ids_org=word_ids
         word_ids = pad_sequences(word_ids, padding='post')
 
-        #<new>
-        if(self._bretFlag):
-            # Instantiate tokenizer
-            tokenizer = create_tokenizer_from_hub_module()
-            # Convert data to InputExample format
-
-
-
-            train_examples = convert_text_to_examples(word_ids_org, word_ids_org)
-            # test_examples = convert_text_to_examples(test_text, test_label)
-
-            # Convert to features
-            (train_input_ids, train_input_masks, train_segment_ids, train_labels) = convert_examples_to_features(tokenizer, train_examples, max_seq_length=self._max_len)
-            features=[train_input_ids, train_input_masks, train_segment_ids]
-
-
-        elif self._use_char:
+        if self._use_char:
             char_ids = [[self._char_vocab.doc2id(w) for w in doc] for doc in X]
             char_ids = pad_nested_sequences(char_ids)
             features = [word_ids, char_ids]

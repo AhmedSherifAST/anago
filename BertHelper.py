@@ -7,7 +7,7 @@ import re
 import numpy as np
 from bert.tokenization import FullTokenizer
 from tqdm import tqdm_notebook
-from tensorflow.keras import backend as K
+#from tensorflow.keras import backend as K
 
 # Initialize session
 sess = tf.Session()
@@ -153,7 +153,6 @@ def convert_text_to_examples(texts, labels):
 
 #(test_input_ids, test_input_masks, test_segment_ids, test_labels
 #) = convert_examples_to_features(tokenizer, test_examples, max_seq_length=max_seq_length)
-
 
 
 

@@ -6,7 +6,6 @@ import re
 import numpy as np
 from bert.tokenization import FullTokenizer
 from tqdm import tqdm_notebook
-
 #tf.keras.backend
 
 
