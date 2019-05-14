@@ -196,14 +196,14 @@ class Sequence(object):
         self._bretMaxLen=bretMaxLen
         self._bert_path=bert_path
 
-    def bertFit(self,x_train, y_train,epochs=1, batch_size=32, verbose=1, callbacks=None, shuffle=True):
+    def bertFit(self,x_train, y_train,x_valid=None, y_valid=None,epochs=1, batch_size=32, verbose=1, callbacks=None, shuffle=True):
 
         sess = tf.Session()
         bert_path = "https://tfhub.dev/google/bert_multi_cased_L-12_H-768_A-12/1"
         max_seq_length = self._bretMaxLen
 
         tokenizer = create_tokenizer_from_hub_module()
-
+        print("tokenizar done")
 
         train_examples = convert_text_to_examples(x_train, y_train)
 
@@ -238,6 +238,53 @@ class Sequence(object):
             batch_size=batch_size
         )
 
+    def bertFitV2(self, x_train, y_train,x_valid=None, y_valid=None, epochs=1, batch_size=32, verbose=1, callbacks=None, shuffle=True):
+
+        sess = tf.Session()
+        bert_path = "https://tfhub.dev/google/bert_multi_cased_L-12_H-768_A-12/1"
+        max_seq_length = self._bretMaxLen
+
+        p = IndexTransformer(initial_vocab=self.initial_vocab, use_char=self.use_char)
+        p.fit(x_train, y_train)
+        embeddings = filter_embeddings(self.embeddings, p._word_vocab.vocab, self.word_embedding_dim)
+
+        #tokenizer = create_tokenizer_from_hub_module()
+        #print("tokenizar done")
+
+        #train_examples = convert_text_to_examples(x_train, y_train)
+
+        #(train_input_ids, train_input_masks, train_segment_ids, train_labels) = convert_examples_to_features(tokenizer,train_examples,max_seq_length=max_seq_length)
+
+        model = ABM.BertBiLSTMCRF(
+            num_labels=p.label_size,
+            char_embedding_dim=self.char_embedding_dim,
+            word_lstm_size=self.word_lstm_size,
+            char_lstm_size=self.char_lstm_size,
+            fc_dim=self.fc_dim,
+            use_char=self.use_char,
+            char_vocab_size=None,
+            use_crf=self.use_crf,
+            layer2Flag=self._layer2Flag,
+            layerdropout=self._layerdropout,
+            bretFlag=self._bretFlag,
+            bretMaxLen=self._bretMaxLen,
+            bert_path=self._bert_path)
+
+        model, loss = model.build()
+
+        # Instantiate variables
+        ABM.initialize_vars(sess)
+
+        model.compile(loss=loss, optimizer=self.optimizer)
+
+        trainer = Trainer(model, preprocessor=p)
+        trainer.train(x_train, y_train, x_valid, y_valid,
+                      epochs=epochs, batch_size=batch_size,
+                      verbose=verbose, callbacks=callbacks,
+                      shuffle=shuffle)
+
+        self.p = p
+        self.model = model
 
     def fit(self, x_train, y_train, x_valid=None, y_valid=None,
             epochs=1, batch_size=32, verbose=1, callbacks=None, shuffle=True):
