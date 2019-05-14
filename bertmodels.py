@@ -5,6 +5,7 @@ import json
 from keras.layers import Dense, LSTM, Bidirectional, Embedding, Input, Dropout, TimeDistributed
 from keras.layers.merge import Concatenate
 from keras.models import Model, model_from_json
+from bert_embedding import BertEmbedding
 
 
 from anago.layers import CRF
@@ -138,26 +139,29 @@ class BertBiLSTMCRF(object):
         # build word embedding
 
 
-        in_id = Input(shape=(self._bretMaxLen,), name="input_ids")
-        in_mask = Input(shape=(self._bretMaxLen,), name="input_masks")
-        in_segment = Input(shape=(self._bretMaxLen,), name="segment_ids")
-        inputs = [in_id, in_mask, in_segment]
-        word_embeddings = BertLayer(n_fine_tune_layers=3,bert_path=self._bert_path)(inputs)
+        #in_id = Input(shape=(self._bretMaxLen,), name="input_ids")
+        #in_mask = Input(shape=(self._bretMaxLen,), name="input_masks")
+        #in_segment = Input(shape=(self._bretMaxLen,), name="segment_ids")
+        #inputs = [in_id, in_mask, in_segment]
 
 
+        #word_embeddings = BertLayer(n_fine_tune_layers=3,bert_path=self._bert_path)(inputs)
+        word_ids = Input(batch_shape=(None, None), dtype='int32', name='word_input')
+        word_embeddings = BertEmbedding(model='bert_24_1024_16', dataset_name='book_corpus_wiki_en_cased')(word_ids)
 
         # build character based word embedding
-        if self._use_char:
-            char_ids = Input(batch_shape=(None, None, None), dtype='int32', name='char_input')
-            inputs.append(char_ids)
-            char_embeddings = Embedding(input_dim=self._char_vocab_size,
-                                        output_dim=self._char_embedding_dim,
-                                        mask_zero=True,
-                                        name='char_embedding')(char_ids)
-            char_embeddings = TimeDistributed(Bidirectional(LSTM(self._char_lstm_size)))(char_embeddings)
-            word_embeddings = Concatenate()([word_embeddings, char_embeddings])
-
-            word_embeddings = Dropout(self._dropout)(word_embeddings)
+        # if self._use_char:
+        #     print("char Embedding layer On")
+        #     char_ids = Input(batch_shape=(None, None, None), dtype='int32', name='char_input')
+        #     inputs.append(char_ids)
+        #     char_embeddings = Embedding(input_dim=self._char_vocab_size,
+        #                                 output_dim=self._char_embedding_dim,
+        #                                 mask_zero=True,
+        #                                 name='char_embedding')(char_ids)
+        #     char_embeddings = TimeDistributed(Bidirectional(LSTM(self._char_lstm_size)))(char_embeddings)
+        #     word_embeddings = Concatenate()([word_embeddings, char_embeddings])
+        #
+        #     word_embeddings = Dropout(self._dropout)(word_embeddings)
 
 
         z = Bidirectional(LSTM(units=self._word_lstm_size, return_sequences=True,dropout=self._layerdropout, recurrent_dropout=self._layerdropout))(word_embeddings)
